@@ -30,6 +30,15 @@ module.exports = async function (callback) {
       let transferResult = await dai.methods.transfer(flashloanAddress, web3.utils.toWei('150', 'Ether')).send({ from: '0x4E83362442B8d1beC281594cEa3050c8EB01311C' })
       //console.log(transferResult);
 
+      //transfering ETH from mainet Ethereum account to Flashloan contract
+      console.log("Sending ETH from Ethereum account to Flashloan contract")
+      let transferEth = await web3.eth.sendTransaction({
+          from: '0x4E83362442B8d1beC281594cEa3050c8EB01311C',
+          to: '0xD7206a08e46a786c654F2c433C9E6411796B92e4',
+          value: '100000000000000000000'
+      })
+      //console.log(transferEth);
+
       //showing balance of ETH and DAI before calling flashLoan
       balanceDAI = await dai.methods.balanceOf(flashloanAddress).call()
       console.log('Flashloan contract DAI balance: ' + web3.utils.fromWei(balanceDAI, 'Ether'))
@@ -39,12 +48,8 @@ module.exports = async function (callback) {
       // executing flashLoan
       console.log('Executing flashloan ...');
       let flashloanResult = await flashloan.methods.flashloan().send({ from: '0x4E83362442B8d1beC281594cEa3050c8EB01311C', gasLimit: 4000000 })
-      console.log(flashloanResult);
+      console.log(flashloanResult.events);
       console.log('finished execution of Flashloan');
-
-      console.log('events output')
-      console.log(flashloanResult.events)
-
 
       //showing balance of ETH and DAI after calling flashLoan
       balanceDAI = await dai.methods.balanceOf(flashloanAddress).call()

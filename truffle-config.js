@@ -12,7 +12,7 @@ module.exports = {
       port: 8545,
       // gas: 20000000,
       network_id: "*",
-      skipDryRun: true,      
+      skipDryRun: true,
     },
     // mainnet: {
     //   provider: new HDWalletProvider(process.env.KEY, "https://mainnet.infura.io/" + process.env.INFURA_API_KEY),

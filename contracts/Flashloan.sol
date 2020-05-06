@@ -4,10 +4,6 @@ import "./aave/FlashLoanReceiverBase.sol";
 import "./aave/ILendingPoolAddressesProvider.sol";
 import "./aave/ILendingPool.sol";
 
-interface DaiToken{
-  function approve(address usr, uint wad) external returns (bool);
-}
-
 interface KncToken{
   function approve(address usr, uint wad) external returns (bool);
 }
@@ -18,11 +14,21 @@ interface KyberExchange {
     uint minRate
   ) external payable returns (uint);
 
-  function swapTokenToEther(
-    ERC20 token,
-    uint tokenQty,
-    uint minRate
-  ) external payable returns (uint);
+  function swapTokenToEther(ERC20 token, uint srcAmount, uint minConversionRate) external returns(uint);
+
+  function tradeWithHint(
+    ERC20 src,
+    uint srcAmount,
+    ERC20 dest,
+    address destAddress,
+    uint maxDestAmount,
+    uint minConversionRate,
+    address walletId,
+    bytes calldata hint
+    ) external payable returns(uint);
+
+    function getExpectedRate(ERC20 src, ERC20 dest, uint srcQty) external view
+    returns (uint expectedRate, uint slippageRate);
 }
 
 interface UniswapExchange{
@@ -34,6 +40,9 @@ interface UniswapExchange{
     uint256 deadline,
     address token_addr
   ) external returns (uint256 tokens_bought);
+
+  // Trade DAI to ETH
+  function tokenToEthSwapInput(uint256 tokens_sold, uint256 min_eth, uint256 deadline) external returns (uint256  eth_bought);
 
   // Trade ETH to ERC20
   function ethToTokenSwapInput(
@@ -49,7 +58,8 @@ contract Flashloan is FlashLoanReceiverBase {
     event beforeBorrow(address _reserve, uint256 _amount, uint256 _eth, uint256 _dai);
     event borrowMade(address _reserve, uint256 _amount, uint256 _eth, uint256 _dai);
     event daiApproved(string _message);
-    event uniswapDone(string _message);
+    event uniswapDone(address _reserve, uint256 _amount, uint256 _eth, uint256 _dai);
+    event kyberDone(string _message);
     event borrowReturned(address _reserve, uint256 _amount, uint256 _eth, uint256 _dai);
 
     function executeOperation(
@@ -67,27 +77,46 @@ contract Flashloan is FlashLoanReceiverBase {
         // do your thing here
         //
 
-        DaiToken daiToken = DaiToken(0x6B175474E89094C44Da98b954EedeAC495271d0F);
-        daiToken.approve(address(this),_amount);
-        emit daiApproved('DAI was approved');
-
-        KyberExchange kyberExchange = KyberExchange(0x818E6FECD516Ecc3849DAf6845e3EC868087B755);
         ERC20 daiErc20 = ERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F);
-        //kyberExchange.swapEtherToToken.value(1000000000000000000)(daiErc20, 1);
-        //kyberExchange.swapTokenToEther(daiErc20, 1000000000000000000, 1);
-
-
-        //making DAI to KNC swap
+        ERC20 ETH_TOKEN_ADDRESS = ERC20(0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee);
         uint256 DEADLINE = block.timestamp + 300;
         UniswapExchange uniswapExchange = UniswapExchange(0x2a1530C4C41db0B0b2bB646CB5Eb1A67b7158667);
+        KyberExchange kyberExchange = KyberExchange(0x818E6FECD516Ecc3849DAf6845e3EC868087B755);
 
+        daiErc20.approve(address(uniswapExchange),0x56BC75E2D63100000);
+        emit daiApproved('100 DAI for Uniswap was approved');
+
+        daiErc20.approve(address(kyberExchange), 0x56BC75E2D63100000);
+        emit daiApproved('100 DAI for Kyber was approved');
+
+
+        //KYBER transactions
+
+        //making DAI to ETH swap
+        kyberExchange.swapTokenToEther(daiErc20, 0x56BC75E2D63100000, 1);  // 100 DAI
+        //emit kyberDone('Kyberswap DAI to ETH done');
+
+        // making ETH to DAI swap
+        //kyberExchange.swapEtherToToken.value(1000000000000000000)(daiErc20, 1); // 1 ETH
+        //kyberExchange.swapEtherToToken.value(482000000000000000)(daiErc20, 1);  // 0.428 ETH
+        //emit kyberDone('Kyberswap ETH to DAI done');
+
+
+        //UNISWAP TRANSACTIONS
+
+        //making DAI to KNC swap
         //uniswapExchange.tokenToTokenSwapInput(_amount, 1, 1, DEADLINE, address(0xdd974D5C2e2928deA5F71b9825b8b646686BD200));
-        //javascript code from swap-dai-for-knc.js:69
-        //result = await exchangeContract.methods.tokenToTokenSwapInput(DAI_TO_SWAP, MIN_TOKENS, MIN_ETH, DEADLINE, KNC_ADDRESS).send({from : SETTINGS.from, gasLimit : 4000000})
-        //exchangeContract.methods.ethToTokenSwapInput(1, DEADLINE).send(SETTINGS)
+        //emit uniswapDone('UNISWAP DAI to KNC');
 
-        uniswapExchange.ethToTokenSwapInput.value(1000000000000000000)(1, DEADLINE);
-        emit uniswapDone('Uniswap is done');
+        //making 100 DAI to ETH swap
+        uint256 MIN_TOKENS = 1;
+        //uniswapExchange.tokenToEthSwapInput(0x56BC75E2D63100000, MIN_TOKENS, DEADLINE);
+        //emit uniswapDone(address(this), _amount, address(this).balance, getBalanceInternal(address(this), address(0x6B175474E89094C44Da98b954EedeAC495271d0F)));
+
+        //making ETH to DAI swap
+        //uniswapExchange.ethToTokenSwapInput.value(1000000000000000000)(MIN_TOKENS, DEADLINE);  // 1 ETH
+        uniswapExchange.ethToTokenSwapInput.value(482280000000000000)(MIN_TOKENS, DEADLINE);  // 0.48228 ETH
+        //emit uniswapDone('Uniswap ETH to DAI done');
 
 
         // Time to transfer the funds back
@@ -98,7 +127,7 @@ contract Flashloan is FlashLoanReceiverBase {
 
     function flashloan() public  {
         bytes memory data = "";
-        uint amount = 100 ether;
+        uint amount = 100 ether; //we gonna borrow 100 DAI
         address asset = address(0x6B175474E89094C44Da98b954EedeAC495271d0F); // mainnet DAI
 
         ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());

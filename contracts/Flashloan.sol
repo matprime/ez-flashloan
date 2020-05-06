@@ -59,7 +59,7 @@ contract Flashloan is FlashLoanReceiverBase {
     event borrowMade(address _reserve, uint256 _amount, uint256 _eth, uint256 _dai);
     event daiApproved(string _message);
     event uniswapDone(address _reserve, uint256 _amount, uint256 _eth, uint256 _dai);
-    event kyberDone(string _message);
+    event kyberDone(address _reserve, uint256 _amount, uint256 _eth, uint256 _dai);
     event borrowReturned(address _reserve, uint256 _amount, uint256 _eth, uint256 _dai);
 
     function executeOperation(
@@ -94,7 +94,7 @@ contract Flashloan is FlashLoanReceiverBase {
 
         //making DAI to ETH swap
         kyberExchange.swapTokenToEther(daiErc20, 0x56BC75E2D63100000, 1);  // 100 DAI
-        //emit kyberDone('Kyberswap DAI to ETH done');
+        emit kyberDone(address(this), _amount, address(this).balance, getBalanceInternal(address(this), address(0x6B175474E89094C44Da98b954EedeAC495271d0F)));
 
         // making ETH to DAI swap
         //kyberExchange.swapEtherToToken.value(1000000000000000000)(daiErc20, 1); // 1 ETH
@@ -113,9 +113,9 @@ contract Flashloan is FlashLoanReceiverBase {
         //uniswapExchange.tokenToEthSwapInput(0x56BC75E2D63100000, MIN_TOKENS, DEADLINE);
         //emit uniswapDone(address(this), _amount, address(this).balance, getBalanceInternal(address(this), address(0x6B175474E89094C44Da98b954EedeAC495271d0F)));
 
-        //making ETH to DAI swap
+        //making ETH to DAI swap      
         //uniswapExchange.ethToTokenSwapInput.value(1000000000000000000)(MIN_TOKENS, DEADLINE);  // 1 ETH
-        uniswapExchange.ethToTokenSwapInput.value(482280000000000000)(MIN_TOKENS, DEADLINE);  // 0.48228 ETH
+        uniswapExchange.ethToTokenSwapInput.value(address(this).balance)(MIN_TOKENS, DEADLINE);  // 0.48228 ETH
         //emit uniswapDone('Uniswap ETH to DAI done');
 
 

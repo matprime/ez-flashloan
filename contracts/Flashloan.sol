@@ -60,6 +60,7 @@ contract Flashloan is FlashLoanReceiverBase {
     event daiApproved(string _message);
     event uniswapDone(address _reserve, uint256 _amount, uint256 _eth, uint256 _dai);
     event kyberDone(address _reserve, uint256 _amount, uint256 _eth, uint256 _dai);
+    event debtCalculated(uint256 _dai, uint256 _fee, uint _totalDebt);
     event borrowReturned(address _reserve, uint256 _amount, uint256 _eth, uint256 _dai);
 
     function executeOperation(
@@ -77,29 +78,32 @@ contract Flashloan is FlashLoanReceiverBase {
         // do your thing here
         //
 
-        ERC20 daiErc20 = ERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F);
-        ERC20 ETH_TOKEN_ADDRESS = ERC20(0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee);
-        uint256 DEADLINE = block.timestamp + 300;
-        UniswapExchange uniswapExchange = UniswapExchange(0x2a1530C4C41db0B0b2bB646CB5Eb1A67b7158667);
-        KyberExchange kyberExchange = KyberExchange(0x818E6FECD516Ecc3849DAf6845e3EC868087B755);
+        //ERC20 daiErc20 = ERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F);
+        //ERC20 ETH_TOKEN_ADDRESS = ERC20(0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee);
+        //uint256 DEADLINE = block.timestamp + 300;
+        //UniswapExchange uniswapExchange = UniswapExchange(0x2a1530C4C41db0B0b2bB646CB5Eb1A67b7158667);
+        //KyberExchange kyberExchange = KyberExchange(0x818E6FECD516Ecc3849DAf6845e3EC868087B755);
 
-        daiErc20.approve(address(uniswapExchange),0x56BC75E2D63100000);
-        emit daiApproved('100 DAI for Uniswap was approved');
+        //daiErc20.approve(address(uniswapExchange),0x21E19E0C9BAB2400000);
+        //emit daiApproved('10000 DAI for Uniswap was approved');
 
-        daiErc20.approve(address(kyberExchange), 0x56BC75E2D63100000);
-        emit daiApproved('100 DAI for Kyber was approved');
+        //daiErc20.approve(address(kyberExchange), 0x21E19E0C9BAB2400000);
+        //emit daiApproved('10000 DAI for Kyber was approved');
 
 
         //KYBER transactions
 
         //making DAI to ETH swap
-        kyberExchange.swapTokenToEther(daiErc20, 0x56BC75E2D63100000, 1);  // 100 DAI
-        emit kyberDone(address(this), _amount, address(this).balance, getBalanceInternal(address(this), address(0x6B175474E89094C44Da98b954EedeAC495271d0F)));
+        //kyberExchange.swapTokenToEther(daiErc20, 0x3635C9ADC5DEA00000, 1);  // 10000 DAI
+        //emit kyberDone(address(this), _amount, address(this).balance, getBalanceInternal(address(this), address(0x6B175474E89094C44Da98b954EedeAC495271d0F)));
+
+
 
         // making ETH to DAI swap
         //kyberExchange.swapEtherToToken.value(1000000000000000000)(daiErc20, 1); // 1 ETH
         //kyberExchange.swapEtherToToken.value(482000000000000000)(daiErc20, 1);  // 0.428 ETH
         //emit kyberDone('Kyberswap ETH to DAI done');
+
 
 
         //UNISWAP TRANSACTIONS
@@ -109,26 +113,28 @@ contract Flashloan is FlashLoanReceiverBase {
         //emit uniswapDone('UNISWAP DAI to KNC');
 
         //making 100 DAI to ETH swap
-        uint256 MIN_TOKENS = 1;
+        //uint256 MIN_TOKENS = 1;
         //uniswapExchange.tokenToEthSwapInput(0x56BC75E2D63100000, MIN_TOKENS, DEADLINE);
         //emit uniswapDone(address(this), _amount, address(this).balance, getBalanceInternal(address(this), address(0x6B175474E89094C44Da98b954EedeAC495271d0F)));
 
-        //making ETH to DAI swap      
+        //making ETH to DAI swap
         //uniswapExchange.ethToTokenSwapInput.value(1000000000000000000)(MIN_TOKENS, DEADLINE);  // 1 ETH
-        uniswapExchange.ethToTokenSwapInput.value(address(this).balance)(MIN_TOKENS, DEADLINE);  // 0.48228 ETH
-        //emit uniswapDone('Uniswap ETH to DAI done');
+        //uniswapExchange.ethToTokenSwapInput.value(address(this).balance)(MIN_TOKENS, DEADLINE);  // cca 4.8 ETH
+        //emit uniswapDone(address(this), _amount, address(this).balance, getBalanceInternal(address(this), address(0x6B175474E89094C44Da98b954EedeAC495271d0F)));
 
 
         // Time to transfer the funds back
         uint totalDebt = _amount.add(_fee);
+        emit debtCalculated(getBalanceInternal(address(this), address(0x6B175474E89094C44Da98b954EedeAC495271d0F)),_fee, totalDebt);
         transferFundsBackToPoolInternal(_reserve, totalDebt);
         emit borrowReturned(address(this), _amount, address(this).balance, getBalanceInternal(address(this), address(0x6B175474E89094C44Da98b954EedeAC495271d0F)));
     }
 
     function flashloan() public  {
         bytes memory data = "";
-        uint amount = 100 ether; //we gonna borrow 100 DAI
-        address asset = address(0x6B175474E89094C44Da98b954EedeAC495271d0F); // mainnet DAI
+        uint amount = 1000 ether; //we gonna borrow 1000 DAI
+        address asset = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE); // mainnet ETH
+        //address asset = address(0x6B175474E89094C44Da98b954EedeAC495271d0F); // mainnet DAI
 
         ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
         emit beforeBorrow(address(this), amount, address(this).balance, getBalanceInternal(address(this), asset));

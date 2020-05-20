@@ -27,16 +27,16 @@ module.exports = async function (callback) {
 
       //transferring DAI from mainet Ethereum account to Flashloan contract
       console.log('Transfering DAI from Ethereum account to Flashloan contract')
-      let transferResult = await dai.methods.transfer(flashloanAddress, web3.utils.toWei('1000', 'Ether')).send({ from: '0x4E83362442B8d1beC281594cEa3050c8EB01311C' })
+      let transferResult = await dai.methods.transfer(flashloanAddress, web3.utils.toWei('100', 'Ether')).send({ from: '0x4E83362442B8d1beC281594cEa3050c8EB01311C' })
       //console.log(transferResult);
 
       //transfering ETH from mainet Ethereum account to Flashloan contract
-      //console.log("Sending ETH from Ethereum account to Flashloan contract")
-      //let transferEth = await web3.eth.sendTransaction({
-      //    from: '0x4E83362442B8d1beC281594cEa3050c8EB01311C',
-      //    to: '0xD7206a08e46a786c654F2c433C9E6411796B92e4',
-      //    value: '10000000000000000000'
-      //})
+      console.log("Sending ETH from Ethereum account to Flashloan contract")
+      let transferEth = await web3.eth.sendTransaction({
+          from: '0x4E83362442B8d1beC281594cEa3050c8EB01311C',
+          to: '0xD7206a08e46a786c654F2c433C9E6411796B92e4',
+          value: '10000000000000000000'
+      })
       //console.log(transferEth);
 
       //showing balance of ETH and DAI before calling flashLoan
